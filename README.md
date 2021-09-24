@@ -1,7 +1,7 @@
-# Kubernetes Utility
+# Kubernetes Tray
 
-> Easier Access on Kubernetes
+> Easier Access on Kubernetes with system tray!
 
 ### Introduction
 
-This tool is aim to provide easier access on Kubernetes funtionalities like:
+This tool is aim to provide easier access on Kubernetes funtionalities
