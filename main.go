@@ -5,6 +5,7 @@ import (
 	"os"
 	"path/filepath"
 	"runtime"
+	"time"
 
 	"github.com/getlantern/systray"
 	rotatelogs "github.com/lestrrat-go/file-rotatelogs"
@@ -19,6 +20,8 @@ var (
 	existingContext  []string
 
 	rootElement *Element
+
+	autoRefresh bool
 
 	trayLog *log.Entry
 	kubeLog *log.Entry
@@ -59,10 +62,12 @@ func init() {
 		}
 		// Auto refresh
 		viper.Set("auto-refresh.enabled", false)
-		viper.Set("auto-refresh.interval", 10)
+		viper.Set("auto-refresh.interval", 30)
 		// WriteConfigAs requried for first time creation
 		viper.WriteConfigAs(filepath.Join(home, ".kube-tray", "config.yaml"))
 	}
+
+	autoRefresh = viper.GetBool("auto-refresh.enabled")
 }
 
 func main() {
@@ -92,6 +97,25 @@ func onTrayReady() {
 	}
 
 	//////////////////////////////////
+	autoRefreshMenuItem := systray.AddMenuItemCheckbox("Auto Refresh", "Auto Refresh", autoRefresh)
+	autoRefreshTicker := time.NewTicker(viper.GetDuration("auto-refresh.interval") * time.Second)
+	autoRefreshMenuItemFunc := func() {
+		if autoRefreshMenuItem.Checked() {
+			trayLog.Info("Disable auto refresh")
+			autoRefresh = false
+			viper.Set("auto-refresh.enabled", false)
+			viper.WriteConfig()
+			autoRefreshMenuItem.Uncheck()
+		} else {
+			trayLog.Info("Enable auto refresh")
+			autoRefresh = true
+			viper.Set("auto-refresh.enabled", true)
+			viper.WriteConfig()
+			autoRefreshMenuItem.Check()
+		}
+	}
+
+	//////////////////////////////////
 	systray.AddSeparator()
 
 	//////////////////////////////////
@@ -109,6 +133,12 @@ func onTrayReady() {
 			systray.Quit()
 		case <-reloadMenuItem.ClickedCh:
 			reloadMenuItemFunc()
+		case <-autoRefreshTicker.C:
+			if autoRefresh {
+				go rootElement.UpdateData()
+			}
+		case <-autoRefreshMenuItem.ClickedCh:
+			autoRefreshMenuItemFunc()
 		}
 	}
 }

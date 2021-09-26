@@ -11,6 +11,7 @@ import (
 )
 
 func (rootElement *Element) UpdateData() {
+	kubeLog.Info("Updating Data for all contexts")
 	// Mark all for pending deletion
 	rootElement.ElementTraversalMarkNonUpdated()
 	// Update contexts
