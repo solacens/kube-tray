@@ -1,7 +1,6 @@
 package main
 
 import (
-	"fmt"
 	"os"
 	"path/filepath"
 
@@ -21,7 +20,7 @@ func LoadKubeconfig(clean bool) {
 			for _, match := range matches {
 				ctx := filepath.Base(match)
 				existingContext = append(existingContext, ctx)
-				kubeLog.Info(fmt.Sprintf("Loaded kubeconfig [%s]", ctx))
+				kubeLog.Infof("Loaded kubeconfig [%s]", ctx)
 			}
 			return
 		}
@@ -48,7 +47,7 @@ func LoadKubeconfig(clean bool) {
 		newConfig.CurrentContext = ctx
 
 		existingContext = append(existingContext, ctx)
-		kubeLog.Info(fmt.Sprintf("(Re)Created kubeconfig [%s]", ctx))
+		kubeLog.Infof("(Re)Created kubeconfig [%s]", ctx)
 
 		clientcmd.WriteToFile(newConfig, filepath.Join(contextDirectory, ctx))
 	}

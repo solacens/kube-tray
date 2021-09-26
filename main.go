@@ -4,13 +4,13 @@ import (
 	"io"
 	"os"
 	"path/filepath"
-
-	rotatelogs "github.com/lestrrat-go/file-rotatelogs"
-	log "github.com/sirupsen/logrus"
+	"runtime"
 
 	"github.com/getlantern/systray"
+	rotatelogs "github.com/lestrrat-go/file-rotatelogs"
+	log "github.com/sirupsen/logrus"
 	"github.com/solacens/kube-tray/icon"
-
+	"github.com/spf13/viper"
 	"k8s.io/client-go/util/homedir"
 )
 
@@ -25,23 +25,44 @@ var (
 )
 
 func init() {
-	// File paths
+	// Home directory
 	home := homedir.HomeDir()
-	logFilePath := filepath.Join(home, ".kube-tray", "log.")
-	// appConfigPath = filepath.Join(home, ".kube-tray", "config")
 
 	// Logger setting
+	logFilePath := filepath.Join(home, ".kube-tray", "log.")
 	r, _ := rotatelogs.New(logFilePath + "%Y%m%d")
 	mw := io.MultiWriter(os.Stdout, r)
 	log.SetFormatter(&log.JSONFormatter{})
 	log.SetOutput(mw)
-	log.SetLevel(log.DebugLevel)
+	log.SetLevel(log.InfoLevel)
 	trayLog = log.WithFields(log.Fields{
 		"type": "tray",
 	})
 	kubeLog = log.WithFields(log.Fields{
 		"type": "kube",
 	})
+
+	// Config
+	viper.SetConfigName("config")
+	viper.SetConfigType("yaml")
+	viper.AddConfigPath(filepath.Join(home, ".kube-tray"))
+	err := viper.ReadInConfig()
+	if err != nil {
+		// Default terminal command
+		if runtime.GOOS == "windows" {
+			// cmd /c wt -w 0 nt
+			viper.Set("shell.command", []string{"cmd", "/c", "wt", "-w", "0", "nt"})
+			// cmd /c wt -w 0 nt pwsh -noe -c <command>
+			viper.Set("shell.extraRunArgs", []string{"pwsh", "-noe", "-c"})
+		} else {
+			viper.Set("shell.command", []string{"bash"}) // TODO: Darwin & Linux
+		}
+		// Auto refresh
+		viper.Set("auto-refresh.enabled", false)
+		viper.Set("auto-refresh.interval", 10)
+		// WriteConfigAs requried for first time creation
+		viper.WriteConfigAs(filepath.Join(home, ".kube-tray", "config.yaml"))
+	}
 }
 
 func main() {
