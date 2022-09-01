@@ -55,14 +55,13 @@ func init() {
 		if runtime.GOOS == "windows" {
 			// cmd /c wt -w 0 nt
 			viper.Set("shell.command", []string{"cmd", "/c", "wt", "-w", "0", "nt"})
-			// cmd /c wt -w 0 nt pwsh -noe -c <command>
-			viper.Set("shell.extraRunArgs", []string{"pwsh", "-noe", "-c"})
 		} else {
-			viper.Set("shell.command", []string{"bash"}) // TODO: Darwin & Linux
+			// bash
+			viper.Set("shell.command", []string{"bash"}) // Untested: Darwin & Linux
 		}
 		// Auto refresh
 		viper.Set("auto-refresh.enabled", false)
-		viper.Set("auto-refresh.interval", 30)
+		viper.Set("auto-refresh.interval", 3600)
 		// WriteConfigAs requried for first time creation
 		viper.WriteConfigAs(filepath.Join(home, ".kube-tray", "config.yaml"))
 	}

@@ -34,7 +34,7 @@ func LoadKubeconfig(clean bool) {
 	kubeConfig := clientcmd.NewNonInteractiveDeferredLoadingClientConfig(loadingRules, configOverrides)
 	config, err := kubeConfig.RawConfig()
 	if err != nil {
-		kubeLog.Panic(err)
+		kubeLog.Warning(err)
 	}
 
 	// Create seperate kubeconfig per context
@@ -45,10 +45,19 @@ func LoadKubeconfig(clean bool) {
 		newConfig.AuthInfos[user] = config.AuthInfos[user].DeepCopy()
 		newConfig.Clusters[ctx] = config.Clusters[ctx].DeepCopy()
 		newConfig.CurrentContext = ctx
+		tmpConfigPath := filepath.Join(contextDirectory, (ctx + "tmp"))
+		clientcmd.WriteToFile(newConfig, tmpConfigPath)
+		namespaces := GetNamespaces(tmpConfigPath)
+		os.Remove(tmpConfigPath)
 
-		existingContext = append(existingContext, ctx)
-		kubeLog.Infof("(Re)Created kubeconfig [%s]", ctx)
-
-		clientcmd.WriteToFile(newConfig, filepath.Join(contextDirectory, ctx))
+		if len(namespaces) > 0 {
+			existingContext = append(existingContext, ctx)
+			kubeLog.Infof("(Re)Created kubeconfig [%s]", ctx)
+			for _, nsItem := range namespaces {
+				ns := nsItem.Name
+				newConfig.Contexts[ctx].Namespace = ns
+				clientcmd.WriteToFile(newConfig, filepath.Join(contextDirectory, ctx, ns))
+			}
+		}
 	}
 }
